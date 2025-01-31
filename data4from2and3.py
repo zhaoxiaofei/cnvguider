@@ -101,6 +101,8 @@ def norm_tool_result(call, result_filename_1, tool, lib_1, pyscripts, result_fil
 
 def bamfilename2samplename(bam): return bam.split(os.path.sep)[-1].split('.')[0]
 
+def get_cleanup(script): return change_file_ext(script, 'cleanup.sh')
+
 def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval, rootdir, vcf, tool2script_dict, start_script, is_overall_haploid):
     
     ref=F'{rootdir}/refs/hg19.fa'
@@ -152,23 +154,30 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             if tool == 'readcounter':
                 cmd = (F'time -p {readcounter_bin} -w {window_size} {bam} -c {chrs} > {bam}.wig ' 
                        F' && time -p conda run -n single_cell_pipeline-0.8.26 python {correct_read_count_py} {ref}.gc.seg {ref}.mp.seg {bam}.wig {bam}.wig.csv '
-                       F' #parallel=prerun.correct_read_count_py/')
-            elif tool == 'mq30bedcov500k':                
+                       F' #parallel=prerun.{tool}/')
+                cmd_cleanup = F'echo Keeping {bam}.wig and {bam}.wig.csv #parallel=cleanup.{tool}'
+            elif tool == 'mq30bedcov500k':
                 cmd = (F"samtools view -bh -q 30 {bam} { chrs.replace(',', ' ') } > {mq30bam} && samtools index {mq30bam} "
                        F" && samtools bedcov {hg19bed} {mq30bam} > {mq30bed} #parallel=prerun.{tool}/")
+                cmd_cleanup = F'rm {mq30bam} && echo Keeping {mq30bed} #parallel=cleanup.{tool}/'
             elif tool == 'bam2bed':                
-                cmd = F' time -p bedtools bamtobed -i {bam} > {bed} #parallel=run.{tool}/'
+                cmd = F' time -p bedtools bamtobed -i {bam} > {bed} #parallel=prerun.{tool}/'
+                cmd_cleanup = F'echo Keeping {bed} #parallel=cleanup.{tool}/'
             elif tool == 'dedup':
                 cmd = F'samtools view -F 0x400 -o {dedup_bam} {bam} && samtools index {dedup_bam} #parallel=prerun.{tool}/'
+                cmd_cleanup = F'rm {dedup_bam} #parallel=cleanup.{tool}/'
             else: sys.stderr.write(F'The tool {tool} is unknown, aborting!')
             with open(subscript, 'w') as file: write2file(cmd, file, subscript)
             deps.append((start_script, subscript))
             deps.append((subscript, script))
+            with open(get_cleanup(subscript), 'w') as file: write2file(cmd_cleanup, file, get_cleanup(subscript))
         cmds.append(F'echo performed {tool}')
         for tool_next in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT[tool]:
             script_next = tool2script_dict[tool_next]
             deps.append((script, script_next))
-    
+            for subscript in subscripts:
+                deps.append((script_next, get_cleanup(subscript)))
+
     if tool == 'hmmcopy':
         for bam, lib, cnv in zip(bams, libs, cnvs):
             cmd = (
@@ -251,7 +260,9 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         cmd1 = F'''rm -r {tmpdir} || true && mkdir -p {tmpdir}/chisel_input/ {tmpdir}/chisel_output/'''
         cmd2 = F'''cp -s { ' '.join(bams + bais) } {tmpdir}/chisel_input/'''
         cmd3 = F'''cd {tmpdir}/chisel_output/ && conda run -n chisel chisel_prep {tmpdir}/chisel_input/*.bam'''
-        cmd4 = F'''conda run -n chisel chisel_nonormal -t barcodedcells.bam -r {ref} -l {vcf} || true'''
+        #cmd4 = F'''conda run -n chisel chisel_nonormal -t barcodedcells.bam -r {ref} -l {vcf} || true'''
+        cmd4 =(F'''conda run -n chisel chisel_pseudonormal -n normal.bam barcodedcells.bam && '''
+               F'''conda run -n chisel chisel -n normal.bam -t barcodedcells.bam -r {ref} -l {vcf} || true''')
         cmd5 = F'''cat {tmpdir}/chisel_output/barcodedcells.info.tsv {tmpdir}/chisel_output/calls/calls.tsv > {tmpdir}/chisel_output/barcodedcells.info.calls.tsv'''
         cmds.append(' && '.join([cmd1, cmd2, cmd3, cmd4, cmd5]))
         for lib, cnv, bam in zip(libs, cnvs, bams):
@@ -286,7 +297,7 @@ def run_tool(infodict, df1, tool,
     #data3to4sh_fname = F'{data4prefix}.data3to4.sh'
     #bams1, bams2, libs1, libs2, cnvs1, cnvs2 = [], [], [], [], [], []
     inbam2call1, inbam2call2 = {}, {}
-    for acc_1, lib_1, sample_1 in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name']):
+    for rowidx_1, (acc_1, lib_1, sample_1) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'])):
         infodict['accession'] = acc_1
         infodict['samplename'] = None
         inst2from1mutbam1, inst2from1dedupb1, inst4from2depcns1, inst4from2intcns1 = find_replace_all([
@@ -301,7 +312,9 @@ def run_tool(infodict, df1, tool,
         #bams1.append(inst2from1mutbam)
         #libs1.append(lib_1)
         #cnvs1.append(inst4from2intcns)
-        for acc_2, lib_2, sample_2 in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name']):
+        for rowidx_2, (acc_2, lib_2, sample_2) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'])):
+            if not cm.circular_dist_below(rowidx_1, rowidx_2, len(df1)): continue
+
             infodict['accession'] = acc_2
             infodict['samplename'] = None
             inst2from1mutbam2, inst4from2depcns2, inst4from2intcns2 = find_replace_all([
