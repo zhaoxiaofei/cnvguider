@@ -53,6 +53,7 @@ if false; then
 fi
 
 conda activate $envname && sed -i 's;Gini<=0.12;Gini<=0.21;g' ${CONDA_PREFIX}/lib/python3.*/site-packages/scyn/utils.py
+conda activate $envname && sed -i 's;perform_qc(Y_raw = Y_raw,;perform_qc(mapq20_thresh = 0.1, Y_raw = Y_raw,;g' ${CONDA_PREFIX}/lib/python3.*/site-packages/scyn/utils.py
 
 exit 0
 
