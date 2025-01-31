@@ -136,7 +136,7 @@ def simulate(infodict,
     random2 = random.Random()
     random2.seed(acc_1 + ' ' + acc_2)
     aneuploid_test_0to1rv = random2.random()
-    subclonal_frac_0to1thres_rv = random2.random() * 0.25 # PMC8054914 : Figs 3 and S4
+    subclonal_frac_0to1thres_rv = random2.random() * 0.5 # PMC8054914 : Figs 3 and S4
     majorCN_order = random2.sample(range(MAX_HAPLO_CN), MAX_HAPLO_CN)
     minorCN_order = random2.sample(range(MAX_HAPLO_CN), MAX_HAPLO_CN)
     random3 = random.Random()
@@ -211,8 +211,9 @@ def simulate(infodict,
                 region_size = subtable.iat[rowidx, subtable_end_colidx] - subtable.iat[rowidx, subtable_start_colidx]
                 subclonal_frac_0to1rv = random3.random()
                 tie_break_rv = random3.randint(0, 2)
-                if subclonal_frac_0to1rv < subclonal_frac_0to1thres_rv and chrom == prev_chrom and (
-                        region_size < prev_region_size or (region_size == prev_region_size and tie_break_rv)):
+                if (chrom == prev_chrom and subclonal_frac_0to1rv < subclonal_frac_0to1thres_rv and tie_break_rv 
+                        # and (region_size < prev_region_size or (region_size == prev_region_size and tie_break_rv)):
+                        ):
                     subtable.iat[rowidx, subtable_minorCN_colidx] = subtable.iat[rowidx-1, subtable_minorCN_colidx]
                     subtable.iat[rowidx, subtable_totalCN_colidx] = subtable.iat[rowidx-1, subtable_totalCN_colidx]
                     subclonal_frac_idxs.append(rowidx if (rowidx > prev_rowidx) else -rowidx)
@@ -326,9 +327,11 @@ def main(args1=None):
     flagstat2json = {}
     for cell_line in args.cell_lines:
         cell_line_df = cosmic_df.loc[(cosmic_df['#sample_name'] == cell_line),:].copy(deep=True)
-        for (avgSpotLen, sampleType, donor), df1 in sorted(partitioned_dfs.items()):        
-            for     acc_1, lib_1, sample_1, bases1 in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'], df1['Bases']):
-                for acc_2, lib_2, sample_2, bases2 in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'], df1['Bases']):
+        for (avgSpotLen, sampleType, donor), df1 in sorted(partitioned_dfs.items()):
+            for     rowidx_1, (acc_1, lib_1, sample_1, bases1) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'], df1['Bases'])):
+                for rowidx_2, (acc_2, lib_2, sample_2, bases2) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'], df1['Bases'])):
+                    if not cm.circular_dist_below(rowidx_1, rowidx_2, len(df1)): continue
+                    
                     infodict = {
                         'data0to1dir': data0to1dir, 
                         'data1to2dir': data1to2dir, 
