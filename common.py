@@ -218,3 +218,15 @@ def norm_sample_type(df0):
             .str.replace('Oocyte~product:~First~poloar~body' , 'PB1')
             .str.replace('Oocyte~product:~female~pro-nucleus', 'FPN'))
 
+
+### math-related variables and methods
+
+def circular_dist(n1, n2, nmax):
+    assert n1 < nmax, F'{n1} < {nmax} failed'
+    assert n2 < nmax, F'{n2} < {nmax} failed'
+    n1a = n1 + nmax
+    n2a = n2 + nmax
+    return min([abs(n1 - n2), (n1a - n2),  (n2a - n1)])
+
+def circular_dist_below(n1, n2, nmax, dist=1): return circular_dist(n1, n2, nmax) <= dist
+
