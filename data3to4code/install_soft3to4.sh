@@ -34,7 +34,9 @@ bedtools makewindows -g SCCNV/resource/hg19.chrlength.txt -w 500000 > SCCNV/reso
 # https://github.com/deepomicslab/SeCNV
 git clone https://github.com/deepomicslab/SeCNV.git
 sed 's;(np.int);(int);g' SeCNV/Scripts/call_cn.py -i
-
+pushd SeCNV/Scripts
+wget -c https://zenodo.org/records/14407911/files/hg19_mappability.bigWig https://zenodo.org/records/14407911/files/hg38_mappability.bigWig
+popd
 
 #conda create --name chisel chisel
 #mamba env create -f ../env/chisel.freeze.env_export.yml
