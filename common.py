@@ -170,6 +170,7 @@ def list2airflow(listof_src_dst):
 
 
 def list2snakemake(listof_src_dst):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     rules = []
     all_scripts = set([])
     dst_to_srcs_dict = collections.defaultdict(set)
@@ -189,14 +190,14 @@ def list2snakemake(listof_src_dst):
 rule init_{dst_task}:
     input: "{dst_script}"
     output: {dst_done}
-    shell: "bash -evx {dst_script} 2> {dst_script}.stderr && touch {dst_script}.done"'''
+    shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && (pushd {script_dir} && git rev-parse HEAD && git diff HEAD) > {dst_script}.done"'''
         else:    
             src_dones = [F'"{s}.done"' for s in src_scripts]
             rule = F'''
 rule {dst_task}:
     input: {', '.join(src_dones)}
     output: {dst_done}
-    shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && touch {dst_script}.done"'''
+    shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && (pushd {script_dir} && git rev-parse HEAD && git diff HEAD) > {dst_script}.done"'''
         rules.append(rule)
     rule_all = F'''
 rule all:
