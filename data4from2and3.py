@@ -261,8 +261,8 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         cmd2 = F'''cp -s { ' '.join(bams + bais) } {tmpdir}/chisel_input/'''
         cmd3 = F'''cd {tmpdir}/chisel_output/ && conda run -n chisel chisel_prep {tmpdir}/chisel_input/*.bam'''
         #cmd4 = F'''conda run -n chisel chisel_nonormal -t barcodedcells.bam -r {ref} -l {vcf} || true'''
-        cmd4 =(F'''conda run -n chisel chisel_pseudonormal -n normal.bam barcodedcells.bam && '''
-               F'''conda run -n chisel chisel -n normal.bam -t barcodedcells.bam -r {ref} -l {vcf} || true''')
+        cmd4 =(F'''conda run -n chisel chisel_pseudonormal -e 0.6 -n pseudonormal.bam -r {ref} barcodedcells.bam && '''
+               F'''conda run -n chisel chisel -n pseudonormal.bam -t barcodedcells.bam -r {ref} -l {vcf} || true''')
         cmd5 = F'''cat {tmpdir}/chisel_output/barcodedcells.info.tsv {tmpdir}/chisel_output/calls/calls.tsv > {tmpdir}/chisel_output/barcodedcells.info.calls.tsv'''
         cmds.append(' && '.join([cmd1, cmd2, cmd3, cmd4, cmd5]))
         for lib, cnv, bam in zip(libs, cnvs, bams):
@@ -394,7 +394,7 @@ def main(args1=None):
     parser.add_argument('--SraRunTable',type=str,default=defaultSraRunTable, help=(
         'SraRunTable in TSV format containing the columns '
         '#Run, AvgSpotLen, Library~Name, Sample~Name, sample-type, Oocyte_ID, Donor, and SRA~Study'))
-    parser.add_argument('--tools', nargs='?', default=SC_CN_TOOLS, choices=SC_CN_TOOLS,
+    parser.add_argument('--tools', nargs='+', default=SC_CN_TOOLS, choices=SC_CN_TOOLS,
         help='Software tools calling cell-specific copy numbers from from single-cell DNA-seq data')
     parser.add_argument('--cell-lines',nargs='+',default=cosmic_cell_lines, help='Cell-lines')
     
