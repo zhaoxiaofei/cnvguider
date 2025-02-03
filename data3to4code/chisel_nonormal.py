@@ -347,6 +347,7 @@ def sequencing_paired(args, read, fragment, sdfragment):
     jobs = max(1, int(round(args['jobs'] / 2.0)))
     cmd_bwa = '{} mem -M -t {} {} {} {}'.format(args['bwa'], jobs, args['reference'], fastqs[0], fastqs[1])
     cmd_sor = '{} sort - -Obam -o {} -T {} -@ {}'.format(args['samtools'], args['normal'], tmpdir, max(1, args['jobs'] - jobs))
+    # bwa+sor results in permanent sleep (presumably due to deadlock)
     #bwa = sp.Popen(shlex.split(cmd_bwa), stdout=sp.PIPE, stderr=sp.PIPE)
     #sor = sp.Popen(shlex.split(cmd_sor), stdin=bwa.stdout, stdout=sp.PIPE, stderr=sp.PIPE)
     stdout, stderr = args['normal'] + '.stdout.log', args['normal'] + '.stderr.log'
@@ -395,6 +396,7 @@ def sequencing_single(args, read):
     jobs = max(1, int(round(args['jobs'] / 2.0)))
     cmd_bwa = '{} mem -M -t {} {} {}'.format(args['bwa'], jobs, args['reference'], fastq)
     cmd_sor = '{} sort - -Obam -o {} -T {} -@ {}'.format(args['samtools'], args['normal'], tmpdir, max(1, args['jobs'] - jobs))
+    #bwa+sor results in permanent sleep (presumably due to deadlock)
     #bwa = sp.Popen(shlex.split(cmd_bwa), stdout=sp.PIPE, stderr=sp.PIPE)
     #sor = sp.Popen(shlex.split(cmd_sor), stdin=bwa.stdout, stdout=sp.PIPE, stderr=sp.PIPE)
     stdout, stderr = args['normal'] + '.stdout.log', args['normal'] + '.stderr.log'
