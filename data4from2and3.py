@@ -260,7 +260,8 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         cmd1 = F'''rm -r {tmpdir} || true && mkdir -p {tmpdir}/chisel_input/ {tmpdir}/chisel_output/'''
         cmd2 = F'''cp -s { ' '.join(bams + bais) } {tmpdir}/chisel_input/'''
         cmd3 = F'''cd {tmpdir}/chisel_output/ && conda run -n chisel chisel_prep {tmpdir}/chisel_input/*.bam'''
-        cmd4 = F'''conda run -n chisel chisel_nonormal --jobs 4 -t barcodedcells.bam -r {ref} -l {vcf} || true'''
+        cmd4 = F'''conda run -n chisel chisel_nonormal -t barcodedcells.bam -r {ref} -l {vcf} || true'''
+        # chisel_pseudonormal mislabeled all the normal samples as tumor samples with -e 0.9
         # chisel_pseudonormal+chisel seems to run forever
         #cmd4 =(F'''conda run -n chisel chisel_pseudonormal -e 0.6 -n pseudonormal.bam -r {ref} barcodedcells.bam && '''
         #       F'''conda run -n chisel chisel -n pseudonormal.bam -t barcodedcells.bam -r {ref} -l {vcf} || true''')
