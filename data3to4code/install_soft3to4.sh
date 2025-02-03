@@ -42,8 +42,9 @@ popd
 #mamba env create -f ../env/chisel.freeze.env_export.yml
 conda create --yes --name chisel --file ../env/chisel.requirements.list_e_no_pypi.txt
 #sed "s;profile = 'HS20' if abs(100 - read) < abs(125 - read) else 'HS25';profile = 'HS25' # 'HS20' if abs(100 - read) < abs(125 - read) else 'HS25';g" -i ${CONDA_PREFIX}/../chisel/lib/python2.7/site-packages/chisel/bin/chisel_nonormal.py
-sed "s; -ss {} ; ;g" -i ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
-sed "s;, profile, ;, ;g" -i ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
+#sed "s; -ss {} ; ;g" -i ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
+#sed "s;, profile, ;, ;g" -i ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
+cp ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py chisel_nonormal.py.1.bak && cp chisel_nonormal.py ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
 
 # SCYN
 for py in $(ls ${CONDA_PREFIX}/lib/python3.*/site-packages/scyn/scyn.py); do cp scyn/scyn.py $py ; done
