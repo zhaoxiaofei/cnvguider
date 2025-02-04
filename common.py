@@ -1,4 +1,4 @@
-import collections, os, re
+import collections, os, re, subprocess
 
 ### data-related variables and methods
 
@@ -171,13 +171,18 @@ def list2airflow(listof_src_dst):
 
 def list2snakemake(listof_src_dst):
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    init_version_info = subprocess.check_output(F'cd {script_dir} && git rev-parse HEAD && git diff HEAD', shell=True, text=True)
+    init_version_comment = '\n'.join([F'#{line}' for line in init_version_info.split('\n')])
     rules = []
     all_scripts = set([])
     dst_to_srcs_dict = collections.defaultdict(set)
+    dst_to_params_dict = {}
     dst_dones = []
     for src_dst in listof_src_dst:
         src_script, dst_script = src_dst[0], src_dst[1]
         dst_to_srcs_dict[dst_script].add(src_script)
+        if len(src_dst) > 2:
+            dst_to_params_dict[dst_script] = src_dst[2]
         all_scripts.add(src_script)
         all_scripts.add(dst_script)
     for dst_script in all_scripts:
@@ -185,11 +190,13 @@ def list2snakemake(listof_src_dst):
         dst_task = script2task(dst_script)
         dst_done = F'"{dst_script}.done"'
         dst_dones.append(dst_done)
+        params = '\n'.join(dst_to_params_dict.get(dst_script, []))
         if len(src_scripts) == 0:
             rule = F'''
 rule init_{dst_task}:
     input: "{dst_script}"
     output: {dst_done}
+    {params}
     shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && (pushd {script_dir} && git rev-parse HEAD && git diff HEAD) > {dst_script}.done"'''
         else:    
             src_dones = [F'"{s}.done"' for s in src_scripts]
@@ -197,11 +204,15 @@ rule init_{dst_task}:
 rule {dst_task}:
     input: {', '.join(src_dones)}
     output: {dst_done}
+    {params}
     shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && (pushd {script_dir} && git rev-parse HEAD && git diff HEAD) > {dst_script}.done"'''
         rules.append(rule)
     rule_all = F'''
+{init_version_comment}
+
 rule all:
     input: {', '.join(dst_dones)}
+
 '''
     return '\n'.join([rule_all] + rules)
 
