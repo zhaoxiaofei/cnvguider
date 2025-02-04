@@ -95,7 +95,7 @@ def main(args1=None):
                 inst1into2sh3, inst1into2sh4, inst1into2sh5, inst2from1mutbam, inst2from1cnbams, inst2from1flagjs = find_replace_all([
                 cm.t1into2sh3, cm.t1into2sh4, cm.t1into2sh5, cm.t2from1mutbam, cm.t2from1cnbams, cm.t2from1flagjs], infodict)
                 
-                ret.extend([(inst1into2sh2, inst1into2sh3), (inst1into2sh3, inst1into2sh4), (inst1into2sh4, inst1into2sh5)])  
+                ret.extend([(inst1into2sh2, inst1into2sh3), (inst1into2sh3, inst1into2sh4), (inst1into2sh4, inst1into2sh5, ['resources: mem_mb = 9000'])])
                 with    open(inst1into2sh3, 'w') as shfile3, \
                         open(inst1into2sh4, 'w') as shfile4, \
                         open(inst1into2sh5, 'w') as shfile5:

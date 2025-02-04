@@ -280,7 +280,12 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         with open(script2, 'w') as shfile:
             for cmd in cmds2:
                 write2file(cmd, shfile, script)
-        deps.append((script, script2))
+        if tool == 'scyn':
+            deps.append((script, script2, ['resources: mem_mb = 5000']))
+        elif tool == 'chisel':
+            deps.append((script, script2, ['resources: mem_mb = 18000']))
+        else:
+            deps.append((script, script2))
         deps.append((script2, script_eval))    
     return deps, cmds, bam2bed, lib2bed
 
