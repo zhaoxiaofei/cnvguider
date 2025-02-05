@@ -169,7 +169,7 @@ def list2airflow(listof_src_dst):
     return gen_airflow_content('\n'.join(sorted(script2string.values())), '\n'.join(dependencies))
 
 
-def list2snakemake(listof_src_dst):
+def list2snakemake(listof_src_dst, allrules='all'):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     init_version_info = subprocess.check_output(F'cd {script_dir} && git rev-parse HEAD && git diff HEAD', shell=True, text=True)
     init_version_comment = '\n'.join([F'#{line}' for line in init_version_info.split('\n')])
@@ -207,14 +207,14 @@ rule {dst_task}:
     {params}
     shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && (pushd {script_dir} && git rev-parse HEAD && git diff HEAD) > {dst_script}.done"'''
         rules.append(rule)
-    rule_all = F'''
+    rule_all = F'''### GIT_COMMIT_INFO
 {init_version_comment}
 
-rule all:
+rule {allrules}:
     input: {', '.join(dst_dones)}
 
 '''
-    return '\n'.join([rule_all] + rules)
+    return '\n'.join([rule_all] + sorted(rules))
 
 ### genomic-related variables and methods
 
