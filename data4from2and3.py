@@ -61,7 +61,6 @@ class ResultCN:
         self.intCN_bed = intCN_bed
         self.lib = bamfilename2samplename(input_bam)
 
-#SC_CN_TOOLS = ['readcounter', 'hmmcopy', 'ginkgo', 'copynumber', 'sccnv', 'secnv', 'scyn', 'chisel']
 def from_DEPENDENCY_TO_DEPENDENT_to_TOOL_TO_RUN_ORDER(d, order=1, avoided_str=''):
     if isinstance(d, str): return {d: order} if (d != avoided_str) else {}
     else:
@@ -137,6 +136,7 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
     hg19bed = F'{sccnv_dir}/resource/hg19.bin500000.bed'
 
     deps = []
+    # This should be already done in the setup
     #if tool == 'setup':
     #    cmds.append(F'time -p mapCounter -w {window_size} {bigwig} -c {chrs} > {ref}.mp.seg #parallel=setup.ref/')
     #    cmds.append(F'time -p gcCounter -w {window_size} {ref} -c {chrs} > {ref}.gc.seg #parallel=setup.ref/')
@@ -207,6 +207,7 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         collect_rc_4copynumber_py = F'{rootdir}/cnvguider/data3to4code/collect_rc_4copynumber.py'
         CopyNumber_R = F'{rootdir}/cnvguider/data3to4code/CopyNumber.R'
         cmd = ' && '.join([F'cp {bam}.wig.csv {tmpdir}/{lib}.leaf.wig.csv' for bam, lib in zip(bams, libs)])
+        # This code maintains compatibilty with the originally documented code from SingleCellCNABenchmark
         #for bam, lib in zip(bams, libs): 
         #    cmd = F'cp {bam}.wig.csv {tmpdir}/{lib}.leaf.wig.csv #parallel=prerun.{tool}/'
         #    cmds.append(cmd)
@@ -298,7 +299,6 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
     return deps, cmds, bam2bed, lib2bed
 
 def run_tool(infodict, df1, tool,
-    #data2prefix1, data3prefix1, data4prefix1, data2to4tmp, data3to4tmp, data2to4res1, data3to4res1, 
     rootdir, avgSpotLen, sampleType, donor, tool2script_dicts, writing_mode):
     
     inst1into2end, inst2into3end, inst2from1vcf021, inst2into4logdir, inst2into4script, inst2into4scrip2, inst2into4tmpdir, inst4from2datdir, inst3into4logdir, inst3into4script, inst3into4scrip2, inst3into4tmpdir, inst4from3datdir, inst4into5logdir, inst4into5script, = find_replace_all([
@@ -308,28 +308,25 @@ def run_tool(infodict, df1, tool,
     post2pre_simbam = {}
     assert len(pd.unique(df1['Donor'])) == 1, F'The dataframe {df1} has multiple donors'
     donor = list(pd.unique(df1['Donor']))[0]
-    #data2to4sh_fname = F'{data4prefix}.data2to4.sh'
-    #data3to4sh_fname = F'{data4prefix}.data3to4.sh'
-    #bams1, bams2, libs1, libs2, cnvs1, cnvs2 = [], [], [], [], [], []
     inbam2call1, inbam2call2 = {}, {}
     for rowidx_1, (acc_1, lib_1, sample_1) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'])):
-        infodict['accession'] = acc_1
-        infodict['samplename'] = None
-        inst2from1mutbam1, inst2from1dedupb1, inst4from2depcns1, inst4from2intcns1 = find_replace_all([
-        cm.t2from1mutbam , cm.t2from1dedupb , cm.t4from2depcns , cm.t4from2intcns ], infodict)
+        for GT in ['B', 'A']:
+            infodict['GT'] = GT
+            infodict['accession'] = acc_1
+            infodict['samplename'] = None
+            inst2from1mutbam1, inst2from1dedupb1, inst4from2depcns1, inst4from2intcns1 = find_replace_all([
+            cm.t2from1mutbam , cm.t2from1dedupb , cm.t4from2depcns , cm.t4from2intcns ], infodict)
+            
+            infodict['samplename'] = bamfilename2samplename(inst2from1mutbam1)
+            inst4from2depcns1, inst4from2intcns1 = find_replace_all([
+            inst4from2depcns1, inst4from2intcns1], infodict)
+            
+            inbam2call1[inst2from1mutbam1] = ResultCN(input_bam=inst2from1mutbam1, dedup_bam=inst2from1dedupb1, simul_bed='', info_json='', depCN_bed=inst4from2depcns1, intCN_bed=inst4from2intcns1)
         
-        infodict['samplename'] = bamfilename2samplename(inst2from1mutbam1)
-        inst4from2depcns1, inst4from2intcns1 = find_replace_all([
-        inst4from2depcns1, inst4from2intcns1], infodict)
-        
-        inbam2call1[inst2from1mutbam1] = ResultCN(input_bam=inst2from1mutbam1, dedup_bam=inst2from1dedupb1, simul_bed='', info_json='', depCN_bed=inst4from2depcns1, intCN_bed=inst4from2intcns1)
-        
-        #bams1.append(inst2from1mutbam)
-        #libs1.append(lib_1)
-        #cnvs1.append(inst4from2intcns)
         for rowidx_2, (acc_2, lib_2, sample_2) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'])):
             if not cm.circular_dist_below(rowidx_1, rowidx_2, len(df1)): continue
-
+            
+            infodict['GT'] = 'B'
             infodict['accession'] = acc_2
             infodict['samplename'] = None
             inst2from1mutbam2, inst4from2depcns2, inst4from2intcns2 = find_replace_all([
@@ -358,12 +355,6 @@ def run_tool(infodict, df1, tool,
                     intCN_bed=inst4from3intcns)
             post2pre_simbam[inst3from2simbam] = (inst2from1mutbam1, inst2from1mutbam2)
            
-            #bams2.append(data3prefix + '.bam')
-            #post2pre_simbam[data3prefix + '.bam'] = ((data2prefix + '.bam', data2prefix_second + '.bam'))
-            #libs2.append(lib_1 + '_' + lib_2)
-            #cnvs2.append(data3to4res)
-    #sh_2to4_fname = os.path.dirname(data2prefix1) + F'to4.step{tool_order}_{donor}_{sampleType}_{avgSpotLen}_{tool}.sh'
-    #sh_3to4_fname = os.path.dirname(data3prefix1) + F'to4.step{tool_order}_{donor}_{sampleType}_{avgSpotLen}_{tool}.sh'
     outeval_fname = inst4into5script # os.path.dirname(data3prefix1) + F'to4.step{tool_order}_{donor}_{sampleType}_{avgSpotLen}_{tool}_eval.sh'
     deps1, cmds1, bam2bed1, lib2bed1 = run_tool_1(infodict, tool, inbam2call1, inst2into4tmpdir, inst2into4script, inst2into4scrip2, outeval_fname,
             rootdir, inst2from1vcf021, tool2script_dicts[0], inst1into2end, is_overall_haploid=True, writing_mode=writing_mode)
@@ -389,9 +380,6 @@ def run_tool(infodict, df1, tool,
         deps3.append((outeval_fname, F'data4from2and3_3_eval_cellLine_{infodict["cellLine"]}.rule'))
         deps3.append((outeval_fname, F'data4from2and3_3_eval_tool_{tool}.rule'))
         deps3.append((outeval_fname, F'data4from2and3_3_eval_all.rule'))
-        #return (inst2into4script, inst2into4scrip2, inst3into4script, inst3into4scrip2, outeval_fname)
-    #else:
-    #    #return (inst2into4script, inst3into4script)
     return deps1 + deps2 + deps3
 
 def main(args1=None):

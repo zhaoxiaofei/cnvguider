@@ -127,9 +127,11 @@ def simulate(infodict,
     subclonal_frac_idxs = []
     infodict = copy.deepcopy(infodict)
     infodict['accession'] = acc_1
+    infodict['GT'] = 'A'
     inst2from1mutbam1, inst2from1cnbams1, inst2from1flagjs1 = find_replace_all([
     cm.t2from1mutbam , cm.t2from1cnbams , cm.t2from1flagjs], infodict)
     infodict['accession'] = acc_2
+    infodict['GT'] = 'B'
     inst2from1mutbam2, inst2from1cnbams2, inst2from1flagjs2 = find_replace_all([
     cm.t2from1mutbam , cm.t2from1cnbams , cm.t2from1flagjs], infodict)
     
@@ -329,26 +331,32 @@ def main(args1=None):
     for cell_line in args.cell_lines:
         cell_line_df = cosmic_df.loc[(cosmic_df['#sample_name'] == cell_line),:].copy(deep=True)
         for (avgSpotLen, sampleType, donor), df1 in sorted(partitioned_dfs.items()):
+            infodict = {
+                'data0to1dir': data0to1dir,
+                'data1to2dir': data1to2dir,
+                'data2to3dir': data2to3dir,
+                'data2to4dir': data2to4dir,
+                'donor'      : str(donor),
+                'sampleType' : str(sampleType),
+                'avgSpotLen' : str(avgSpotLen),
+                'cellLine'   : str(cell_line),
+            }
+            inst2into3end, inst2into3logdir, inst2into3tmpdir, inst3from2datdir = find_replace_all([
+            cm.t2into3end, cm.t2into3logdir, cm.t2into3tmpdir, cm.t3from2datdir], infodict)
+
+            cm.makedirs((inst2into3logdir, inst2into3tmpdir, inst3from2datdir))
+            with cm.myopen(inst2into3end, args.writing_mode) as file: write2file(F'echo {inst2into3end} is done', file, inst2into3end)
+
             for     rowidx_1, (acc_1, lib_1, sample_1, bases1) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'], df1['Bases'])):
                 for rowidx_2, (acc_2, lib_2, sample_2, bases2) in enumerate(zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name'], df1['Bases'])):
                     if not cm.circular_dist_below(rowidx_1, rowidx_2, len(df1)): continue
-                    
-                    infodict = {
-                        'data0to1dir': data0to1dir, 
-                        'data1to2dir': data1to2dir, 
-                        'data2to3dir': data2to3dir, 
-                        'data2to4dir': data2to4dir,
-                        'donor'      : str(donor),
-                        'sampleType' : str(sampleType),
-                        'avgSpotLen' : str(avgSpotLen),
-                        'cellLine'   : str(cell_line),
+                    infodict.update({
                         'accession_1': str(acc_1),
                         'accession_2': str(acc_2),
-                    }
+                    })
                     
-                    inst2into3end, inst2into3logdir, inst2into3script, inst2into3tmpdir, inst3from2datdir, inst3from2simbam, inst3from2simbed, inst3from2dedupb, inst3from2infojs = find_replace_all([
-                    cm.t2into3end, cm.t2into3logdir, cm.t2into3script, cm.t2into3tmpdir, cm.t3from2datdir, cm.t3from2simbam, cm.t3from2simbed, cm.t3from2dedupb, cm.t3from2infojs], infodict)
-                    cm.makedirs((inst2into3logdir, inst2into3tmpdir, inst3from2datdir))
+                    inst2into3script, inst3from2simbam, inst3from2simbed, inst3from2dedupb, inst3from2infojs = find_replace_all([
+                    cm.t2into3script, cm.t3from2simbam, cm.t3from2simbed, cm.t3from2dedupb, cm.t3from2infojs], infodict)
                     random_thres_str, subclonal_frac_idxs = simulate(infodict,
                             cell_line_df, cell_line, 
                             lib_1, acc_1, lib_2, acc_2,
@@ -367,13 +375,13 @@ def main(args1=None):
                         'subclonal_frac_idxs': ','.join([str(x) for x in subclonal_frac_idxs]) # for debugging purpose
                     })
                     with cm.myopen(inst3from2infojs, args.writing_mode) as jsfile: json.dump(infodict, jsfile, indent=2)
-                    for acc in [acc_1, acc_2]:
+                    for GT, acc in [('A', acc_1), ('B', acc_2)]:
+                        infodict['GT'] = GT
                         infodict['accession'] = acc
                         inst1into2sh5, = find_replace_all([
                         cm.t1into2sh5], infodict)
                         ret.append((inst1into2sh5, inst2into3script))
-                        ret.append((inst2into3script, inst2into3end))
-                    with cm.myopen(inst2into3end, args.writing_mode) as file: write2file(F'echo {inst2into3end} is done', file, inst2into3end)
+                        ret.append((inst2into3script, inst2into3end))                    
                     ret.append((inst2into3end, F'data3from2_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
                     ret.append((inst2into3end, F'data3from2_all.rule'))
                     

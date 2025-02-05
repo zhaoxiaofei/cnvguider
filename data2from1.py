@@ -91,6 +91,7 @@ def main(args1=None):
         with cm.myopen(inst1into2sh2, args.writing_mode) as shfile2: write2file(cmd_callsnps, shfile2, inst1into2sh2)
 
         for GT, germvcf3 in [('A', germvcf3a), ('B', germvcf3b)]:
+            infodict['GT'] = GT
             for acc, LB, SM in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name']):
                 infodict['accession'] = acc
                 inst1into2sh3, inst1into2sh4, inst1into2sh5, inst2from1mutbam, inst2from1cnbams, inst2from1flagjs = find_replace_all([

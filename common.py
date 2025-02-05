@@ -10,9 +10,9 @@ t0into1fq2 = '<data0to1dir>/1from0.datdir/<accession>_2.fastq.gz'
 t1into2log = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/'
 t1into2sh1 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step1-gen-bam_<accession>.sh'
 t1into2sh2 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step2-gen-vcf.sh'
-t1into2sh3 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step3-gen-mut-unsort-fqs_<accession>.sh'
-t1into2sh4 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step4-gen-mut-sorted-fqs_<accession>.sh'
-t1into2sh5 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step5-gen-mut-bam_<accession>.sh'
+t1into2sh3 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step3-gen-mut-unsort-fqs_<accession>_<GT>.sh'
+t1into2sh4 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step4-gen-mut-sorted-fqs_<accession>_<GT>.sh'
+t1into2sh5 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step5-gen-mut-bam_<accession>_<GT>.sh'
 t1into2end = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_z.sentinel_end.sh'
 t1into2tmp = '<data1to2dir>/<donor>/1into2_2_<donor>.tmpdir/'
 
@@ -23,10 +23,10 @@ t2from1vcf020 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_
 t2from1vcf021 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_21_randomHaploPair_diplotype.vcf'
 t2from1vcf03A = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_3A_haploA.vcf.gz'
 t2from1vcf03B = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_3B_haploB.vcf.gz'
-t2from1mutbam = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut.bam'
-t2from1dedupb = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut_dedup.bam'
-t2from1cnbams=[F'<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut_cn{i}.bam' for i in range(1, 1+6, 1)]
-t2from1flagjs = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut_flagstat.json'
+t2from1mutbam = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_<GT>_sort_markdup_mut.bam'
+t2from1dedupb = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_<GT>_sort_markdup_mut_dedup.bam'
+t2from1cnbams=[F'<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_<GT>_sort_markdup_mut_cn{i}.bam' for i in range(1, 1+6, 1)]
+t2from1flagjs = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_<GT>_sort_markdup_mut_flagstat.json'
 
 # run the above first if samtools flagstat is used for downsampling sequencing reads
 
