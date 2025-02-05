@@ -102,7 +102,8 @@ def bamfilename2samplename(bam): return bam.split(os.path.sep)[-1].split('.')[0]
 
 def get_cleanup(script): return change_file_ext(script, 'cleanup.sh')
 
-def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval, rootdir, vcf, tool2script_dict, start_script, is_overall_haploid, writing_mode):
+def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval, rootdir, vcf, tool2script_dict, start_script, is_overall_haploid, writing_mode, visited_scripts):
+    cellLine = ('hap' if is_overall_haploid else infodict['cellLine'])
     
     ref=F'{rootdir}/refs/hg19.fa'
     bigwig='{rootdir}/refs/wgEncodeCrgMapabilityAlign36mer.bigWig'
@@ -149,6 +150,7 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             script_next = tool2script_dict[tool_next]
             deps.append((script, script_next))
     elif tool in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT:
+        assert len(subscripts) == len(set(subscripts)), F'The subscript files {sorted(subscripts)} are duplicated!'
         for bam, bed, lib, mq30bam, mq30bed, dedup_bam, subscript in zip(bams, beds, libs, mapq30bams, mapq30beds, dedup_bams, subscripts):
             assert bed != bam, F'{bam} != {bed} failed'
             if tool == 'readcounter':
@@ -166,11 +168,22 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             elif tool == 'dedup':
                 cmd = F'samtools view -F 0x400 -o {dedup_bam} {bam} && samtools index {dedup_bam} #parallel=prerun.{tool}/'
                 cmd_cleanup = F'rm {dedup_bam} #parallel=cleanup.{tool}/'
-            else: sys.stderr.write(F'The tool {tool} is unknown, aborting!')
-            with cm.myopen(subscript, writing_mode) as file: write2file(cmd, file, subscript)
+            else: 
+                sys.stderr.write(F'The tool {tool} is unknown, aborting!')
+                sys.exit(1)
+            if subscript in visited_scripts:
+                logging.info(F'  Skip generating the script {subscript} because it has already been generated. ')
+            else:
+                with cm.myopen(subscript, writing_mode) as file: write2file(cmd, file, subscript)
+                visited_scripts.add(subscript)
+                with cm.myopen(get_cleanup(subscript), writing_mode) as file: write2file(cmd_cleanup, file, get_cleanup(subscript))
             deps.append((start_script, subscript))
             deps.append((subscript, script))
-            with cm.myopen(get_cleanup(subscript), writing_mode) as file: write2file(cmd_cleanup, file, get_cleanup(subscript))
+            deps.append((get_cleanup(subscript), F'data4from2and3_4_cleanup_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
+            deps.append((get_cleanup(subscript), F'data4from2and3_4_cleanup_cellLine_{cellLine}.rule'))
+            deps.append((get_cleanup(subscript), F'data4from2and3_4_cleanup_tool_{tool}.rule'))
+            deps.append((get_cleanup(subscript), F'data4from2and3_4_cleanup_all.rule'))
+
         cmds.append(F'echo performed {tool}')
         for tool_next in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT[tool]:
             script_next = tool2script_dict[tool_next]
@@ -273,18 +286,24 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             cmds2.extend(norm_cmds)
             bam2bed[bam] = norm_beds[1]
             lib2bed[lib] = norm_beds[1]
-    if cmds:
+    if cmds and script in visited_scripts:
+        logging.info(F'  Skip generating the script {script} because it has already been generated. ')
+    elif cmds:
         with cm.myopen(script, writing_mode) as shfile:
             for cmd in cmds:
                 write2file(cmd, shfile, script)
+        visited_scripts.add(script)
         deps.append((script2, F'data4from2and3_1_run_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
-        deps.append((script2, F'data4from2and3_1_run_cellLine_{infodict["cellLine"]}.rule'))
+        deps.append((script2, F'data4from2and3_1_run_cellLine_{cellLine}.rule'))
         deps.append((script2, F'data4from2and3_1_run_tool_{tool}.rule'))
         deps.append((script2, F'data4from2and3_1_run_all.rule'))
-    if cmds2:
+    if cmds2 and script2 in visited_scripts:
+        logging.info(F'  Skip generating the script {script2} because it has already been generated. ')
+    elif cmds2:
         with cm.myopen(script2, writing_mode) as shfile:
             for cmd in cmds2:
-                write2file(cmd, shfile, script)
+                write2file(cmd, shfile, script2)
+        visited_scripts.add(script2)
         if tool == 'scyn':
             deps.append((script, script2, ['resources: mem_mb = 5000']))
         elif tool == 'chisel':
@@ -293,13 +312,13 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             deps.append((script, script2))
         deps.append((script2, script_eval))
         deps.append((script2, F'data4from2and3_2_norm_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
-        deps.append((script2, F'data4from2and3_2_norm_cellLine_{infodict["cellLine"]}.rule'))
+        deps.append((script2, F'data4from2and3_2_norm_cellLine_{cellLine}.rule'))
         deps.append((script2, F'data4from2and3_2_norm_tool_{tool}.rule'))
         deps.append((script2, F'data4from2and3_2_norm_all.rule'))
     return deps, cmds, bam2bed, lib2bed
 
 def run_tool(infodict, df1, tool,
-    rootdir, avgSpotLen, sampleType, donor, tool2script_dicts, writing_mode):
+    rootdir, avgSpotLen, sampleType, donor, tool2script_dicts, writing_mode, visited_scripts):
     
     inst1into2end, inst2into3end, inst2from1vcf021, inst2into4logdir, inst2into4script, inst2into4scrip2, inst2into4tmpdir, inst4from2datdir, inst3into4logdir, inst3into4script, inst3into4scrip2, inst3into4tmpdir, inst4from3datdir, inst4into5logdir, inst4into5script, = find_replace_all([
     cm.t1into2end, cm.t2into3end, cm.t2from1vcf021, cm.t2into4logdir, cm.t2into4script, cm.t2into4scrip2, cm.t2into4tmpdir, cm.t4from2datdir, cm.t3into4logdir, cm.t3into4script, cm.t3into4scrip2, cm.t3into4tmpdir, cm.t4from3datdir, cm.t4into5logdir, cm.t4into5script], infodict)
@@ -357,10 +376,10 @@ def run_tool(infodict, df1, tool,
            
     outeval_fname = inst4into5script # os.path.dirname(data3prefix1) + F'to4.step{tool_order}_{donor}_{sampleType}_{avgSpotLen}_{tool}_eval.sh'
     deps1, cmds1, bam2bed1, lib2bed1 = run_tool_1(infodict, tool, inbam2call1, inst2into4tmpdir, inst2into4script, inst2into4scrip2, outeval_fname,
-            rootdir, inst2from1vcf021, tool2script_dicts[0], inst1into2end, is_overall_haploid=True, writing_mode=writing_mode)
+            rootdir, inst2from1vcf021, tool2script_dicts[0], inst1into2end, is_overall_haploid=True , writing_mode=writing_mode, visited_scripts=visited_scripts)
     tool2script_dicts[0][tool] = inst2into4script
     deps2, cmds2, bam2bed2, lib2bed2 = run_tool_1(infodict, tool, inbam2call2, inst3into4tmpdir, inst3into4script, inst3into4scrip2, outeval_fname,
-            rootdir, inst2from1vcf021, tool2script_dicts[1], inst2into3end, is_overall_haploid=False, writing_mode=writing_mode)
+            rootdir, inst2from1vcf021, tool2script_dicts[1], inst2into3end, is_overall_haploid=False, writing_mode=writing_mode, visited_scripts=set([]))
     tool2script_dicts[1][tool] = inst3into4script
     deps3, cmds3 = [], []
     if tool in SC_CN_EVAL_TOOLS:
@@ -409,6 +428,7 @@ def main(args1=None):
     
     args = (args1 if args1 else parser.parse_args())
     
+    visited_scripts = set([])
     df0 = pd.read_csv(args.SraRunTable, sep='\t', header=0)
     df0['sample-type'] = norm_sample_type(df0)
     grouped = df0.groupby(['AvgSpotLen', 'sample-type', 'Donor'])
@@ -417,6 +437,7 @@ def main(args1=None):
         for (avgSpotLen, sampleType, donor), df1 in sorted(partitioned_dfs.items()):
             tool2script_dicts = {}, {}
             for tool in sorted(args.tools, key=lambda x:(-SC_CN_TOOL_TO_RUN_ORDER[x],x)):
+                logging.info(F'cell_line={cell_line} avgSpotLen={avgSpotLen} sampleType={sampleType} donor={donor} tool={tool}')
                 infodict = {
                         'data0to1dir': data0to1dir,
                         'data1to2dir': data1to2dir,
@@ -433,7 +454,7 @@ def main(args1=None):
                         'tool_ord_1' : str(SC_CN_TOOL_TO_RUN_ORDER[tool]+1),
                         'tool_ord_2' : str(SC_CN_TOOL_TO_RUN_ORDER[tool]+2),
                 }
-                deps = run_tool(infodict, df1, tool, root, avgSpotLen, sampleType, donor, tool2script_dicts, args.writing_mode)
+                deps = run_tool(infodict, df1, tool, root, avgSpotLen, sampleType, donor, tool2script_dicts, args.writing_mode, visited_scripts)
                 ret.extend(deps)
     return ret
 if __name__ == '__main__': print(cm.list2snakemake(main()))
