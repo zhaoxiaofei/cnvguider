@@ -103,7 +103,7 @@ def bamfilename2samplename(bam): return bam.split(os.path.sep)[-1].split('.')[0]
 
 def get_cleanup(script): return change_file_ext(script, 'cleanup.sh')
 
-def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval, rootdir, vcf, tool2script_dict, start_script, is_overall_haploid):
+def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval, rootdir, vcf, tool2script_dict, start_script, is_overall_haploid, writing_mode):
     
     ref=F'{rootdir}/refs/hg19.fa'
     bigwig='{rootdir}/refs/wgEncodeCrgMapabilityAlign36mer.bigWig'
@@ -167,10 +167,10 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
                 cmd = F'samtools view -F 0x400 -o {dedup_bam} {bam} && samtools index {dedup_bam} #parallel=prerun.{tool}/'
                 cmd_cleanup = F'rm {dedup_bam} #parallel=cleanup.{tool}/'
             else: sys.stderr.write(F'The tool {tool} is unknown, aborting!')
-            with open(subscript, 'w') as file: write2file(cmd, file, subscript)
+            with cm.myopen(subscript, writing_mode) as file: write2file(cmd, file, subscript)
             deps.append((start_script, subscript))
             deps.append((subscript, script))
-            with open(get_cleanup(subscript), 'w') as file: write2file(cmd_cleanup, file, get_cleanup(subscript))
+            with cm.myopen(get_cleanup(subscript), writing_mode) as file: write2file(cmd_cleanup, file, get_cleanup(subscript))
         cmds.append(F'echo performed {tool}')
         for tool_next in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT[tool]:
             script_next = tool2script_dict[tool_next]
@@ -273,11 +273,15 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             bam2bed[bam] = norm_beds[1]
             lib2bed[lib] = norm_beds[1]
     if cmds:
-        with open(script, 'w') as shfile:
+        with cm.myopen(script, writing_mode) as shfile:
             for cmd in cmds:
                 write2file(cmd, shfile, script)
+        deps.append((script2, F'data4from2and3_1_run_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
+        deps.append((script2, F'data4from2and3_1_run_cellLine_{infodict["cellLine"]}.rule'))
+        deps.append((script2, F'data4from2and3_1_run_tool_{tool}.rule'))
+        deps.append((script2, F'data4from2and3_1_run_all.rule'))
     if cmds2:
-        with open(script2, 'w') as shfile:
+        with cm.myopen(script2, writing_mode) as shfile:
             for cmd in cmds2:
                 write2file(cmd, shfile, script)
         if tool == 'scyn':
@@ -286,12 +290,16 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
             deps.append((script, script2, ['resources: mem_mb = 18000']))
         else:
             deps.append((script, script2))
-        deps.append((script2, script_eval))    
+        deps.append((script2, script_eval))
+        deps.append((script2, F'data4from2and3_2_norm_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
+        deps.append((script2, F'data4from2and3_2_norm_cellLine_{infodict["cellLine"]}.rule'))
+        deps.append((script2, F'data4from2and3_2_norm_tool_{tool}.rule'))
+        deps.append((script2, F'data4from2and3_2_norm_all.rule'))
     return deps, cmds, bam2bed, lib2bed
 
 def run_tool(infodict, df1, tool,
     #data2prefix1, data3prefix1, data4prefix1, data2to4tmp, data3to4tmp, data2to4res1, data3to4res1, 
-    rootdir, avgSpotLen, sampleType, donor, tool2script_dicts):
+    rootdir, avgSpotLen, sampleType, donor, tool2script_dicts, writing_mode):
     
     inst1into2end, inst2into3end, inst2from1vcf021, inst2into4logdir, inst2into4script, inst2into4scrip2, inst2into4tmpdir, inst4from2datdir, inst3into4logdir, inst3into4script, inst3into4scrip2, inst3into4tmpdir, inst4from3datdir, inst4into5logdir, inst4into5script, = find_replace_all([
     cm.t1into2end, cm.t2into3end, cm.t2from1vcf021, cm.t2into4logdir, cm.t2into4script, cm.t2into4scrip2, cm.t2into4tmpdir, cm.t4from2datdir, cm.t3into4logdir, cm.t3into4script, cm.t3into4scrip2, cm.t3into4tmpdir, cm.t4from3datdir, cm.t4into5logdir, cm.t4into5script], infodict)
@@ -358,14 +366,14 @@ def run_tool(infodict, df1, tool,
     #sh_3to4_fname = os.path.dirname(data3prefix1) + F'to4.step{tool_order}_{donor}_{sampleType}_{avgSpotLen}_{tool}.sh'
     outeval_fname = inst4into5script # os.path.dirname(data3prefix1) + F'to4.step{tool_order}_{donor}_{sampleType}_{avgSpotLen}_{tool}_eval.sh'
     deps1, cmds1, bam2bed1, lib2bed1 = run_tool_1(infodict, tool, inbam2call1, inst2into4tmpdir, inst2into4script, inst2into4scrip2, outeval_fname,
-            rootdir, inst2from1vcf021, tool2script_dicts[0], inst1into2end, is_overall_haploid=True)
+            rootdir, inst2from1vcf021, tool2script_dicts[0], inst1into2end, is_overall_haploid=True, writing_mode=writing_mode)
     tool2script_dicts[0][tool] = inst2into4script
     deps2, cmds2, bam2bed2, lib2bed2 = run_tool_1(infodict, tool, inbam2call2, inst3into4tmpdir, inst3into4script, inst3into4scrip2, outeval_fname,
-            rootdir, inst2from1vcf021, tool2script_dicts[1], inst2into3end, is_overall_haploid=False)
+            rootdir, inst2from1vcf021, tool2script_dicts[1], inst2into3end, is_overall_haploid=False, writing_mode=writing_mode)
     tool2script_dicts[1][tool] = inst3into4script
     deps3, cmds3 = [], []
     if tool in SC_CN_EVAL_TOOLS:
-        with open(outeval_fname, 'w') as outeval_file:
+        with cm.myopen(outeval_fname, writing_mode) as outeval_file:
             for postsim, (presim1, presim2) in post2pre_simbam.items():
                 presim_bed1          = inbam2call1[presim1].intCN_bed + '.overall_haploid'
                 presim_bed2          = inbam2call1[presim2].intCN_bed + '.overall_haploid'
@@ -377,6 +385,10 @@ def run_tool(infodict, df1, tool,
                 write2file(cmd3, outeval_file, outeval_fname)
         deps3.append((inst2into4scrip2, outeval_fname))
         deps3.append((inst3into4scrip2, outeval_fname))
+        deps3.append((outeval_fname, F'data4from2and3_3_eval_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
+        deps3.append((outeval_fname, F'data4from2and3_3_eval_cellLine_{infodict["cellLine"]}.rule'))
+        deps3.append((outeval_fname, F'data4from2and3_3_eval_tool_{tool}.rule'))
+        deps3.append((outeval_fname, F'data4from2and3_3_eval_all.rule'))
         #return (inst2into4script, inst2into4scrip2, inst3into4script, inst3into4scrip2, outeval_fname)
     #else:
     #    #return (inst2into4script, inst3into4script)
@@ -404,6 +416,7 @@ def main(args1=None):
     parser.add_argument('--tools', nargs='+', default=SC_CN_TOOLS, choices=SC_CN_TOOLS,
         help='Software tools calling cell-specific copy numbers from from single-cell DNA-seq data')
     parser.add_argument('--cell-lines',nargs='+',default=cosmic_cell_lines, help='Cell-lines')
+    parser.add_argument('-w', '--writing-mode', type=str, default='w', help='File open mode for writing commands to shell script, pass no or no_overwritting to prevent overwriting existing scripts. ')
     
     args = (args1 if args1 else parser.parse_args())
     
@@ -431,7 +444,7 @@ def main(args1=None):
                         'tool_ord_1' : str(SC_CN_TOOL_TO_RUN_ORDER[tool]+1),
                         'tool_ord_2' : str(SC_CN_TOOL_TO_RUN_ORDER[tool]+2),
                 }
-                deps = run_tool(infodict, df1, tool, root, avgSpotLen, sampleType, donor, tool2script_dicts)
+                deps = run_tool(infodict, df1, tool, root, avgSpotLen, sampleType, donor, tool2script_dicts, args.writing_mode)
                 ret.extend(deps)
     return ret
 if __name__ == '__main__': print(cm.list2snakemake(main()))

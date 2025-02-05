@@ -121,7 +121,7 @@ def simulate(infodict,
         cell_line_df, cell_line,
         lib_1, acc_1, lib_2, acc_2,
         inst2into3script, inst2into3tmpdir, inst3from2simbam, inst3from2simbed, inst3from2dedupb,
-        flagstat2json, bases1, bases2, downsample_method,
+        flagstat2json, bases1, bases2, downsample_method, writing_mode,
         MAX_HAPLO_CN=cm.MAX_HAPLO_CN):
     
     subclonal_frac_idxs = []
@@ -173,7 +173,7 @@ def simulate(infodict,
     else:
         GRCH37_DIPLOID_BEDTABLE = GRCH37_CONST_PLOID_BEDTABLE(1, sex='F')
 
-    with open(inst2into3script, 'w') as shfile:        
+    with cm.myopen(inst2into3script, writing_mode) as shfile:        
         if is_diploid:
             spike_cmds = []
             majorCN = minorCN = 1
@@ -316,7 +316,7 @@ def main(args1=None):
     parser.add_argument('--cosmic',      type=str, default=cosmic_cn_filename, help='Copy-number profile TSV file downloaded from cancer.sanger.ac.uk/cosmic/download/cell-lines-project/v97')
     parser.add_argument('--cell-lines',  nargs='+',default=cosmic_cell_lines, help='Cell-lines to be used in --cosmic')
     parser.add_argument('--downsample-method', choices=DOWNSAMPLE_METHODS, default=DOWNSAMPLE_METHODS[0], help='Downsampling method')
-
+    parser.add_argument('-w', '--writing-mode', type=str, default='w', help='File open mode for writing commands to shell script, pass no or no_overwritting to prevent overwriting existing scripts. ')
     args = (args1 if args1 else parser.parse_args())
     
     cosmic_df = pd.read_csv(args.cosmic)
@@ -352,7 +352,7 @@ def main(args1=None):
                             cell_line_df, cell_line, 
                             lib_1, acc_1, lib_2, acc_2,
                             inst2into3script, inst2into3tmpdir, inst3from2simbam, inst3from2simbed, inst3from2dedupb,
-                            flagstat2json, bases1, bases2, args.downsample_method)
+                            flagstat2json, bases1, bases2, args.downsample_method, args.writing_mode)
                     infodict.update({
                         'inst2into3logdir': inst2into3logdir,
                         'inst2into3script': inst2into3script,
@@ -365,13 +365,16 @@ def main(args1=None):
                         'random_thres_str': str(random_thres_str),
                         'subclonal_frac_idxs': ','.join([str(x) for x in subclonal_frac_idxs]) # for debugging purpose
                     })
-                    with open(inst3from2infojs, 'w') as jsfile: json.dump(infodict, jsfile, indent=2)
+                    with cm.myopen(inst3from2infojs, args.writing_mode) as jsfile: json.dump(infodict, jsfile, indent=2)
                     for acc in [acc_1, acc_2]:
                         infodict['accession'] = acc
                         inst1into2sh5, = find_replace_all([
                         cm.t1into2sh5], infodict)
                         ret.append((inst1into2sh5, inst2into3script))
                         ret.append((inst2into3script, inst2into3end))
-                    with open(inst2into3end, 'w') as file: write2file(F'echo {inst2into3end} is done', file, inst2into3end)
+                    with cm.myopen(inst2into3end, args.writing_mode) as file: write2file(F'echo {inst2into3end} is done', file, inst2into3end)
+                    ret.append((inst2into3end, F'data3from2_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
+                    ret.append((inst2into3end, F'data3from2_all.rule'))
+                    
     return ret
 if __name__ == '__main__': print(cm.list2snakemake(main()))

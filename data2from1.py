@@ -41,6 +41,7 @@ def main(args1=None):
             'SraRunTable in TSV format containing the columns '
             '#Run, AvgSpotLen, Library~Name, Sample~Name, sample-type, Oocyte_ID, Donor, and SRA~Study'))
     parser.add_argument('--bwa-ncpus', type=int, default=NUM_CPUS, help='Number of CPUs used by BWA MEM ')
+    parser.add_argument('-w', '--writing-mode', type=str, default='w', help='File open mode for writing commands to shell script, pass no or no_overwritting to prevent overwriting existing scripts. ')
 
     args = (args1 if args1 else parser.parse_args())
     
@@ -61,7 +62,7 @@ def main(args1=None):
             cm.t1into2sh1, cm.t0into1fq1, cm.t0into1fq2], infodict)
             
             ret.append((inst1into2sh1, inst1into2sh2))
-            with open(inst1into2sh1, 'w') as shfile1:
+            with cm.myopen(inst1into2sh1, args.writing_mode) as shfile1:
                 bam2 = inst1into2tmp + F'/{acc}_12_sort_markdup.bam'
                 cmd = (F'''(bwa mem -R "@RG\\tID:{acc}\\tSM:{SM}\\tLB:{LB}\\tPU:L001\\tPL:ILLUMINA" -t {args.bwa_ncpus} {ref} {inst0into1fq1} {inst0into1fq2} '''
                       +F''' | samtools fixmate -m - - | samtools sort -o - - | samtools markdup - {bam2} && samtools index {bam2}) #parallel=bwa/''')
@@ -87,7 +88,7 @@ def main(args1=None):
         for GT, germvcf3 in  [('A', germvcf3a), ('B', germvcf3b)]:
             cmd = F'''bcftools view -fPASS {germvcf2} -s Haplotype{GT} -Oz -o {germvcf3} '''
             cmd_callsnps += ' && ' + cmd
-        with open(inst1into2sh2, 'w') as shfile2: write2file(cmd_callsnps, shfile2, inst1into2sh2)
+        with cm.myopen(inst1into2sh2, args.writing_mode) as shfile2: write2file(cmd_callsnps, shfile2, inst1into2sh2)
 
         for GT, germvcf3 in [('A', germvcf3a), ('B', germvcf3b)]:
             for acc, LB, SM in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name']):
@@ -96,9 +97,9 @@ def main(args1=None):
                 cm.t1into2sh3, cm.t1into2sh4, cm.t1into2sh5, cm.t2from1mutbam, cm.t2from1cnbams, cm.t2from1flagjs], infodict)
                 
                 ret.extend([(inst1into2sh2, inst1into2sh3), (inst1into2sh3, inst1into2sh4), (inst1into2sh4, inst1into2sh5, ['resources: mem_mb = 9000'])])
-                with    open(inst1into2sh3, 'w') as shfile3, \
-                        open(inst1into2sh4, 'w') as shfile4, \
-                        open(inst1into2sh5, 'w') as shfile5:
+                with    cm.myopen(inst1into2sh3, args.writing_mode) as shfile3, \
+                        cm.myopen(inst1into2sh4, args.writing_mode) as shfile4, \
+                        cm.myopen(inst1into2sh5, args.writing_mode) as shfile5:
                     bam2 = F'{inst1into2tmp}/{acc}_12_sort_markdup.bam'
                     fq20 = F'{inst1into2tmp}/{acc}_gt{GT}_0.fastq.gz'
                     fq21 = F'{inst1into2tmp}/{acc}_gt{GT}_1.fastq.gz'
@@ -118,7 +119,9 @@ def main(args1=None):
                           +F''' && {root}/cnvguider/data1to2code/splitbam.out {inst2from1mutbam} {MAX_HAPLO_CN} {cn_bams_str} && for b in {cn_bams_str}; do samtools index $b ; done #parallel=safemut.bwa/''')
                     write2file(cmd5, shfile5, inst1into2sh5)
                     ret.append((inst1into2sh5, inst1into2end))
-        with open(inst1into2end, 'w') as file_end: write2file(F'echo {inst1into2end} is done', file_end, inst1into2end)
+        with cm.myopen(inst1into2end, args.writing_mode) as file_end: write2file(F'echo {inst1into2end} is done', file_end, inst1into2end)
+        ret.append((inst1into2end, F'data2from1_donor_{donor}.rule'))
+        ret.append((inst1into2end, F'data2from1_all.rule'))
     return ret
 
 if __name__ == '__main__': print(cm.list2snakemake(main()))
