@@ -27,9 +27,9 @@ def main():
     parser.add_argument('--cell-lines',  nargs='+',default=cosmic_cell_lines, help='Cell-lines to be used in --cosmic')
     parser.add_argument('--downsample-method', choices=DOWNSAMPLE_METHODS, default=DOWNSAMPLE_METHODS[0], help='Downsampling method') # This should not be changed
     # 4from2and3
-    parser.add_argument('--tools', nargs='?', default=SC_CN_TOOLS, choices=SC_CN_TOOLS, help='Software tools calling cell-specific copy numbers from from single-cell DNA-seq data')
+    parser.add_argument('--tools', nargs='+', default=SC_CN_TOOLS, choices=SC_CN_TOOLS, help='Software tools calling cell-specific copy numbers from from single-cell DNA-seq data')
     
-    parser.add_argument('--steps', nargs='?', default=EVAL_STEPS, choices=EVAL_STEPS, help='Main steps')
+    parser.add_argument('--steps', nargs='+', default=EVAL_STEPS, choices=EVAL_STEPS, help='Main steps')
     
     args = parser.parse_args()
     
