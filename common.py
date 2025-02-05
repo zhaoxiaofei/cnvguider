@@ -1,4 +1,4 @@
-import collections, os, re, subprocess
+import collections, logging, os, re, subprocess
 
 ### data-related variables and methods
 
@@ -8,66 +8,67 @@ t0into1fq2 = '<data0to1dir>/1from0.datdir/<accession>_2.fastq.gz'
 
 # data1to2
 t1into2log = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/'
-t1into2sh1 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/<donor>_step1-gen-bam_<accession>.sh'
-t1into2sh2 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/<donor>_step2-gen-vcf.sh'
-t1into2sh3 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/<donor>_step3-gen-mut-unsort-fqs_<accession>.sh'
-t1into2sh4 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/<donor>_step4-gen-mut-sorted-fqs_<accession>.sh'
-t1into2sh5 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/<donor>_step5-gen-mut-bam_<accession>.sh'
+t1into2sh1 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step1-gen-bam_<accession>.sh'
+t1into2sh2 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step2-gen-vcf.sh'
+t1into2sh3 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step3-gen-mut-unsort-fqs_<accession>.sh'
+t1into2sh4 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step4-gen-mut-sorted-fqs_<accession>.sh'
+t1into2sh5 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step5-gen-mut-bam_<accession>.sh'
+t1into2end = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_z.sentinel_end.sh'
 t1into2tmp = '<data1to2dir>/<donor>/1into2_2_<donor>.tmpdir/'
-t1into2end = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/1into2_2_<donor>.sentinel_end.sh'
 
 # data2
 t2from1datdir = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/'
-t2from1vcf010 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<donor>_1_init.vcf.gz'
-t2from1vcf020 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<donor>_2_randomHaploPair.vcf.gz'
-t2from1vcf021 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<donor>_2_randomHaploPair_diplotype.vcf'
-t2from1vcf03A = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<donor>_3_haploA.vcf.gz'
-t2from1vcf03B = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<donor>_3_haploB.vcf.gz'
-t2from1mutbam = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<accession>_sort_markdup_mut.bam'
-t2from1dedupb = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<accession>_sort_markdup_mut_dedup.bam'
-t2from1cnbams=[F'<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<accession>_sort_markdup_mut_cn{i}.bam' for i in range(1, 1+6, 1)]
-t2from1flagjs = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/<accession>_sort_markdup_mut_flagstat.json'
+t2from1vcf010 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_10_init.vcf.gz'
+t2from1vcf020 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_20_randomHaploPair.vcf.gz'
+t2from1vcf021 = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_21_randomHaploPair_diplotype.vcf'
+t2from1vcf03A = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_3A_haploA.vcf.gz'
+t2from1vcf03B = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step2out_3B_haploB.vcf.gz'
+t2from1mutbam = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut.bam'
+t2from1dedupb = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut_dedup.bam'
+t2from1cnbams=[F'<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut_cn{i}.bam' for i in range(1, 1+6, 1)]
+t2from1flagjs = '<data1to2dir>/<donor>/2from1_2_<donor>.datdir/2_<donor>_2from1_step5out_<accession>_sort_markdup_mut_flagstat.json'
 
-# run the above first
+# run the above first if samtools flagstat is used for downsampling sequencing reads
 
 # data2to3
 t2into3logdir = '<data2to3dir>/<donor>/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.logdir/'
-t2into3script = '<data2to3dir>/<donor>/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.logdir/<accession_1>_<accession_2>_<cellLine>_sim.sh'
+t2into3script = '<data2to3dir>/<donor>/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_2into3_<accession_1>_<accession_2>.sh'
+t2into3end    = '<data2to3dir>/<donor>/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_2into3_z.sentinel_end.sh'
 t2into3tmpdir = '<data2to3dir>/<donor>/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.tmpdir/'
-t2into3end    = '<data2to3dir>/<donor>/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.logdir/2into3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.sentinel_end.sh'
 
 # data3
 t3from2datdir = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/'
-t3from2simbam = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/<accession_1>_<accession_2>_<cellLine>.bam'
-t3from2simbed = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/<accession_1>_<accession_2>_<cellLine>_simtruth.bed'
-t3from2dedupb = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/<accession_1>_<accession_2>_<cellLine>_dedup.bam'
-t3from2infojs = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/<accession_1>_<accession_2>_<cellLine>_info.json'
+t3from2simbam = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_3from2_<accession_1>_<accession_2>.bam'
+t3from2simbed = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_3from2_<accession_1>_<accession_2>_simtruth.bed'
+t3from2dedupb = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_3from2_<accession_1>_<accession_2>_dedup.bam'
+t3from2infojs = '<data2to3dir>/<donor>/3from2_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_3from2_<accession_1>_<accession_2>_info.json'
 
 # data2to4
 t2into4logdir = '<data2to4dir>/<donor>/2into4_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.logdir/'
-t2into4script = '<data2to4dir>/<donor>/2into4_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.logdir/<donor>_<sampleType>_<avgSpotLen>_step<tool_order>_<tool>_call_from2.sh'
-t2into4scrip2 = '<data2to4dir>/<donor>/2into4_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.logdir/<donor>_<sampleType>_<avgSpotLen>_step<tool_ord_1>_<tool>_norm_from2.sh'
+t2into4script = '<data2to4dir>/<donor>/2into4_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>_2into4_call.sh'
+t2into4scrip2 = '<data2to4dir>/<donor>/2into4_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_ord_1>_<tool>_2into4_norm.sh'
 t2into4tmpdir = '<data2to4dir>/<donor>/2into4_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.tmpdir/'
 
 # data3to4
 t3into4logdir = '<data3to4dir>/<donor>/3into4_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/'
-t3into4script = '<data3to4dir>/<donor>/3into4_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/<donor>_<sampleType>_<avgSpotLen>_<cellLine>_step<tool_order>_<tool>_call_from3.sh'
-t3into4scrip2 = '<data3to4dir>/<donor>/3into4_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/<donor>_<sampleType>_<avgSpotLen>_<cellLine>_step<tool_ord_1>_<tool>_norm_from3.sh'
+t3into4script = '<data3to4dir>/<donor>/3into4_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>_3into4_call.sh'
+t3into4scrip2 = '<data3to4dir>/<donor>/3into4_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_ord_1>_<tool>_3into4_norm.sh'
 
 t3into4tmpdir = '<data3to4dir>/<donor>/3into4_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.tmpdir/'
 
 # data4
 
 t4from2datdir = '<data2to4dir>/<donor>/4from2_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.datdir/'
-t4from2depcns = '<data2to4dir>/<donor>/4from2_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.datdir/<samplename>_step<tool_order>_<tool>_from2_depcns.bed'
-t4from2intcns = '<data2to4dir>/<donor>/4from2_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.datdir/<samplename>_step<tool_order>_<tool>_from2_intcns.bed'
+t4from2depcns = '<data2to4dir>/<donor>/4from2_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>_4from2_<samplename>_depcns.bed'
+t4from2intcns = '<data2to4dir>/<donor>/4from2_2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_4_step<tool_order>_<tool>_4from2_<samplename>_intcns.bed'
 
 t4from3datdir = '<data2to4dir>/<donor>/4from3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.datdir/'
-t4from3depcns = '<data2to4dir>/<donor>/4from3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.datdir/<samplename>_step<tool_order>_<tool>_from3_depcns.bed'
-t4from3intcns = '<data2to4dir>/<donor>/4from3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.datdir/<samplename>_step<tool_order>_<tool>_from3_intcns.bed'
+t4from3depcns = '<data2to4dir>/<donor>/4from3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>_4from3_<samplename>_depcns.bed'
+t4from3intcns = '<data2to4dir>/<donor>/4from3_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.datdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>_4from3_<samplename>_intcns.bed'
 
 t4into5logdir = '<data3to4dir>/<donor>/4into5_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/'
-t4into5script = '<data3to4dir>/<donor>/4into5_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/<donor>_<sampleType>_<avgSpotLen>_<cellLine>_step<tool_ord_2>_<tool>_eval_from2and3.sh'
+t4into5script = '<data3to4dir>/<donor>/4into5_2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_order>_<tool>.logdir/2_<donor>_3_<sampleType>_<avgSpotLen>_<cellLine>_4_step<tool_ord_2>_<tool>_4into5_eval.sh'
+
 def find_replace_all(args, old2new, prefix='<', suffix='>'):
     ret = []
     for arg1 in args:
@@ -90,6 +91,13 @@ def get_varnames(default_value, varnames=['data0to1dir', 'data1to2dir', 'data2to
     return ret
 
 ### OS-related variables and methods
+
+def myopen(filename, mode):
+    if mode in ['no_overwritting', 'no']:
+        logging.info(F'Writing to {filename} is redirected to {os.devnull} to prevent overwriting')
+        return open(os.devnull, 'w')
+    else:
+        return open(filename, mode)
 
 def change_file_ext(file_path, new_extension, old_extension=''):
     base_name, old_ext = os.path.splitext(file_path)
@@ -176,15 +184,20 @@ def list2snakemake(listof_src_dst, allrules='all'):
     rules = []
     all_scripts = set([])
     dst_to_srcs_dict = collections.defaultdict(set)
+    rule_to_srcs_dict = collections.defaultdict(set)
     dst_to_params_dict = {}
-    dst_dones = []
+    dst_dones = []   
     for src_dst in listof_src_dst:
         src_script, dst_script = src_dst[0], src_dst[1]
-        dst_to_srcs_dict[dst_script].add(src_script)
-        if len(src_dst) > 2:
-            dst_to_params_dict[dst_script] = src_dst[2]
-        all_scripts.add(src_script)
-        all_scripts.add(dst_script)
+        if dst_script.endswith('.rule'):
+            rule_to_srcs_dict[dst_script].add(src_script)
+        else:
+            dst_to_srcs_dict[dst_script].add(src_script)
+            if len(src_dst) > 2:
+                dst_to_params_dict[dst_script] = src_dst[2]
+            all_scripts.add(src_script)
+            all_scripts.add(dst_script)
+    
     for dst_script in all_scripts:
         src_scripts = sorted(list(dst_to_srcs_dict[dst_script]))
         dst_task = script2task(dst_script)
@@ -193,7 +206,8 @@ def list2snakemake(listof_src_dst, allrules='all'):
         params = '\n'.join(dst_to_params_dict.get(dst_script, []))
         if len(src_scripts) == 0:
             rule = F'''
-rule init_{dst_task}:
+# 1. Beginning
+rule {dst_task}:
     input: "{dst_script}"
     output: {dst_done}
     {params}
@@ -201,18 +215,27 @@ rule init_{dst_task}:
         else:    
             src_dones = [F'"{s}.done"' for s in src_scripts]
             rule = F'''
+# 2. Middle
 rule {dst_task}:
     input: {', '.join(src_dones)}
     output: {dst_done}
     {params}
     shell: "command time -v bash -evx {dst_script} 2> {dst_script}.stderr && (pushd {script_dir} && git rev-parse HEAD && git diff HEAD) > {dst_script}.done"'''
         rules.append(rule)
-    rule_all = F'''### GIT_COMMIT_INFO
-{init_version_comment}
+    for dst_rulename in rule_to_srcs_dict:
+        dst_task = script2task(dst_rulename)
+        src_scripts = sorted(list(rule_to_srcs_dict[dst_rulename]))
+        rule = F'''
+# 3. End
+rule {dst_task}:
+    input: "{', '.join(src_scripts)}"'''
+        rules.append(rule)
 
+    rule_all = F'''
+### GIT_COMMIT_INFO
+{init_version_comment}
 rule {allrules}:
     input: {', '.join(dst_dones)}
-
 '''
     return '\n'.join([rule_all] + sorted(rules))
 
