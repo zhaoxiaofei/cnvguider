@@ -98,6 +98,8 @@ def myopen(filename, mode):
     if mode in OVERWRITING_PREVENTION_MODES and os.path.exists(filename):
         logging.info(F'Writing to {filename} is redirected to {os.devnull} to prevent overwriting')
         return open(os.devnull, 'w')
+    elif mode in OVERWRITING_PREVENTION_MODES:
+        return open(filename, 'w')
     else:
         return open(filename, mode)
 
