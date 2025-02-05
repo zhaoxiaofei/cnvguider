@@ -95,7 +95,7 @@ def get_varnames(default_value, varnames=['data0to1dir', 'data1to2dir', 'data2to
 OVERWRITING_PREVENTION_MODES = ['no_overwritting', 'no']
 DEFAULT_WRITING_MODE = OVERWRITING_PREVENTION_MODES[0]
 def myopen(filename, mode):
-    if mode in OVERWRITING_PREVENTION_MODES:
+    if mode in OVERWRITING_PREVENTION_MODES and os.path.exists(filename):
         logging.info(F'Writing to {filename} is redirected to {os.devnull} to prevent overwriting')
         return open(os.devnull, 'w')
     else:
