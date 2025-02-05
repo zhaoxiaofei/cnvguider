@@ -41,8 +41,8 @@ def main(args1=None):
             'SraRunTable in TSV format containing the columns '
             '#Run, AvgSpotLen, Library~Name, Sample~Name, sample-type, Oocyte_ID, Donor, and SRA~Study'))
     parser.add_argument('--bwa-ncpus', type=int, default=NUM_CPUS, help='Number of CPUs used by BWA MEM ')
-    parser.add_argument('-w', '--writing-mode', type=str, default='w', help='File open mode for writing commands to shell script, pass no or no_overwritting to prevent overwriting existing scripts. ')
-
+    parser.add_argument('-w', '--writing-mode', type=str, default=cm.DEFAULT_WRITING_MODE,
+        help='File open mode for writing commands to shell script, pass any of {cm.OVERWRITING_PREVENTION_MODES} to prevent overwriting existing scripts (or w to do not prevent such thing). ')
     args = (args1 if args1 else parser.parse_args())
     
     df0 = pd.read_csv(args.SraRunTable, sep='\t')

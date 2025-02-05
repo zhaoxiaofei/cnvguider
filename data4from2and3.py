@@ -416,7 +416,8 @@ def main(args1=None):
     parser.add_argument('--tools', nargs='+', default=SC_CN_TOOLS, choices=SC_CN_TOOLS,
         help='Software tools calling cell-specific copy numbers from from single-cell DNA-seq data')
     parser.add_argument('--cell-lines',nargs='+',default=cosmic_cell_lines, help='Cell-lines')
-    parser.add_argument('-w', '--writing-mode', type=str, default='w', help='File open mode for writing commands to shell script, pass no or no_overwritting to prevent overwriting existing scripts. ')
+    parser.add_argument('-w', '--writing-mode', type=str, default=cm.DEFAULT_WRITING_MODE,
+        help='File open mode for writing commands to shell script, pass any of {cm.OVERWRITING_PREVENTION_MODES} to prevent overwriting existing scripts (or w to do not prevent such thing). ')
     
     args = (args1 if args1 else parser.parse_args())
     
