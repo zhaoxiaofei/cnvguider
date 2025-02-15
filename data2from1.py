@@ -51,17 +51,19 @@ def main(args1=None):
     
     for donor, df1 in sorted(partitioned_dfs.items()):
         infodict = {'data0to1dir': data0to1dir, 'data1to2dir': data1to2dir, 'donor': donor}
-        inst1into2sh2, inst1into2end, inst1into2log, inst1into2tmp, inst2from1datdir = find_replace_all([
-        cm.t1into2sh2, cm.t1into2end, cm.t1into2log, cm.t1into2tmp, cm.t2from1datdir], infodict)
+        inst1into2sh0, inst1into2sh2, inst1into2end, inst1into2log, inst1into2tmp, inst2from1datdir = find_replace_all([
+        cm.t1into2sh0, cm.t1into2sh2, cm.t1into2end, cm.t1into2log, cm.t1into2tmp, cm.t2from1datdir], infodict)
         
         cm.makedirs((inst1into2log, inst1into2tmp, inst2from1datdir))
-            
+        with cm.myopen(inst1into2sh0, args.writing_mode) as shfile0: write2file(F'echo {inst1into2sh0} is started', shfile0, inst1into2sh0)
+
         for acc, LB, SM in zip(df1['#Run'], df1['Library~Name'], df1['Sample~Name']):
             infodict['accession'] = acc
             inst1into2sh1, inst0into1fq1, inst0into1fq2 = find_replace_all([
             cm.t1into2sh1, cm.t0into1fq1, cm.t0into1fq2], infodict)
             
-            ret.append((inst1into2sh1, inst1into2sh2))
+            ret.append((inst1into2sh0, inst1into2sh1, ['resources: mem_mb = 9000']))
+            ret.append((inst1into2sh1, inst1into2sh2, ['resources: mem_mb = 9000']))
             with cm.myopen(inst1into2sh1, args.writing_mode) as shfile1:
                 bam2 = inst1into2tmp + F'/{acc}_12_sort_markdup.bam'
                 cmd = (F'''(bwa mem -R "@RG\\tID:{acc}\\tSM:{SM}\\tLB:{LB}\\tPU:L001\\tPL:ILLUMINA" -t {args.bwa_ncpus} {ref} {inst0into1fq1} {inst0into1fq2} '''
@@ -97,7 +99,7 @@ def main(args1=None):
                 inst1into2sh3, inst1into2sh4, inst1into2sh5, inst2from1mutbam, inst2from1cnbams, inst2from1flagjs = find_replace_all([
                 cm.t1into2sh3, cm.t1into2sh4, cm.t1into2sh5, cm.t2from1mutbam, cm.t2from1cnbams, cm.t2from1flagjs], infodict)
                 
-                ret.extend([(inst1into2sh2, inst1into2sh3), (inst1into2sh3, inst1into2sh4), (inst1into2sh4, inst1into2sh5, ['resources: mem_mb = 9000'])])
+                ret.extend([(inst1into2sh2, inst1into2sh3), (inst1into2sh3, inst1into2sh4, ['resources: mem_mb = 9000']), (inst1into2sh4, inst1into2sh5, ['resources: mem_mb = 9000'])])
                 with    cm.myopen(inst1into2sh3, args.writing_mode) as shfile3, \
                         cm.myopen(inst1into2sh4, args.writing_mode) as shfile4, \
                         cm.myopen(inst1into2sh5, args.writing_mode) as shfile5:

@@ -8,6 +8,7 @@ t0into1fq2 = '<data0to1dir>/1from0.datdir/<accession>_2.fastq.gz'
 
 # data1to2
 t1into2log = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/'
+t1into2sh0 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_a.sentinel_begin.sh'
 t1into2sh1 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step1-gen-bam_<accession>.sh'
 t1into2sh2 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step2-gen-vcf.sh'
 t1into2sh3 = '<data1to2dir>/<donor>/1into2_2_<donor>.logdir/2_<donor>_1into2_step3-gen-mut-unsort-fqs_<accession>_<GT>.sh'
