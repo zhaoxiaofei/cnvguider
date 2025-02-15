@@ -148,9 +148,9 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         cmds.append(F'echo performed no-operation')
         for tool_next in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT[tool]:
             script_next = tool2script_dict[tool_next]
-            if tool == 'scyn':
+            if tool_next == 'scyn':
                 deps.append((script, script_next, ['resources: mem_mb = 5000']))
-            elif tool == 'chisel':
+            elif tool_next == 'chisel':
                 deps.append((script, script_next, ['resources: mem_mb = 18000']))
             else:
                 deps.append((script, script_next))
