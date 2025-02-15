@@ -148,7 +148,12 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         cmds.append(F'echo performed no-operation')
         for tool_next in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT[tool]:
             script_next = tool2script_dict[tool_next]
-            deps.append((script, script_next))
+            if tool == 'scyn':
+                deps.append((script, script_next, ['resources: mem_mb = 5000']))
+            elif tool == 'chisel':
+                deps.append((script, script_next, ['resources: mem_mb = 18000']))
+            else:
+                deps.append((script, script_next))
     elif tool in SC_CN_TOOL_DEPENDENCY_TO_DEPENDENT:
         assert len(subscripts) == len(set(subscripts)), F'The subscript files {sorted(subscripts)} are duplicated!'
         for bam, bed, lib, mq30bam, mq30bed, dedup_bam, subscript in zip(bams, beds, libs, mapq30bams, mapq30beds, dedup_bams, subscripts):
@@ -303,13 +308,8 @@ def run_tool_1(infodict, tool, inbam2call, tmpdir, script, script2, script_eval,
         with cm.myopen(script2, writing_mode) as shfile:
             for cmd in cmds2:
                 write2file(cmd, shfile, script2)
-        visited_scripts.add(script2)
-        if tool == 'scyn':
-            deps.append((script, script2, ['resources: mem_mb = 5000']))
-        elif tool == 'chisel':
-            deps.append((script, script2, ['resources: mem_mb = 18000']))
-        else:
-            deps.append((script, script2))
+        visited_scripts.add(script2)   
+        deps.append((script, script2))
         deps.append((script2, script_eval))
         deps.append((script2, F'data4from2and3_2_norm_DSA_{infodict["donor"]}_{infodict["sampleType"]}_{infodict["avgSpotLen"]}.rule'))
         deps.append((script2, F'data4from2and3_2_norm_cellLine_{cellLine}.rule'))
