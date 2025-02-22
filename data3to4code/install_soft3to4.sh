@@ -1,6 +1,6 @@
 # Ginkgo
 
-#git clone https://github.com/robertaboukhalil/ginkgo.git && pushd ginkgo && git checkout d7c7790 && make && popd
+git clone https://github.com/robertaboukhalil/ginkgo.git && pushd ginkgo && git checkout d7c7790 && make && popd
 
 sed 's;library(gridExtra);library(gridExtra)\n\n#NOTE: The workaround https://github.com/ChristophH/gplots described at https://github.com/robertaboukhalil/ginkgo no longer works with R version 4.X.X\n#NOTE: Therefore, we fall back to the heatmap function\nheatmap.2 = function(...) { return(heatmap(...)) };g' ginkgo/scripts/process.R -i
 
@@ -8,8 +8,8 @@ sed 's;tar -czf;#NOTE: the tar command results in runtime error and is therefore
 
 mkdir -p ../../refs/refs3to4/
 pushd    ../../refs/refs3to4/
-#wget https://labshare.cshl.edu/shares/schatzlab/www-data/ginkgo/genomes/hg19.tgz
-#tar -xvf hg19.tgz
+wget https://labshare.cshl.edu/shares/schatzlab/www-data/ginkgo/genomes/hg19.tgz
+tar -xvf hg19.tgz
 popd
 rm -r ${PWD}/ginkgo/genomes/hg19 || true && cp -rs ${PWD}/../../refs/refs3to4/hg19 ${PWD}/ginkgo/genomes/ || true
 
@@ -44,8 +44,11 @@ conda create --yes --name chisel --file ../env/chisel.requirements.list_e_no_pyp
 #sed "s;profile = 'HS20' if abs(100 - read) < abs(125 - read) else 'HS25';profile = 'HS25' # 'HS20' if abs(100 - read) < abs(125 - read) else 'HS25';g" -i ${CONDA_PREFIX}/../chisel/lib/python2.7/site-packages/chisel/bin/chisel_nonormal.py
 #sed "s; -ss {} ; ;g" -i ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
 #sed "s;, profile, ;, ;g" -i ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
-cp ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py chisel_nonormal.py.1.bak && cp chisel_nonormal.py ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py
+orig_chisel=$(ls ${CONDA_PREFIX}/../chisel/lib/python*/site-packages/chisel/bin/chisel_nonormal.py)
+if [ "$(cat "${orig_chisel}" | md5sum)" != "$(cat chisel_nonormal.py | md5sum)" ]; then
+	cp "${orig_chisel}" chisel_nonormal.py.1.bak && cp chisel_nonormal.py "${orig_chisel}"
+fi
 
 # SCYN
-for py in $(ls ${CONDA_PREFIX}/lib/python3.*/site-packages/scyn/scyn.py); do cp scyn/scyn.py $py ; done
+# for py in $(ls ${CONDA_PREFIX}/lib/python3.*/site-packages/scyn/scyn.py); do cp scyn/scyn.py $py ; done # already done, so not needed here
 
