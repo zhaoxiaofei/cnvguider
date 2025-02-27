@@ -3,6 +3,8 @@
 import sys
 import pandas as pd
 
+DEFAULT_CN = 1
+
 def weighted_median(df, val, weight):
     df_sorted = df.sort_values(val)
     cumsum = df_sorted[weight].cumsum()
@@ -15,7 +17,7 @@ def main():
     medianDP = weighted_median(bedtable1, 'obsDP', 'region_size')
     #print(medianDP)
     bedtable2 = bedtable1.copy()
-    bedtable2['obsCN'] = (bedtable1['obsDP'] / medianDP).round(0).astype(int)
+    bedtable2['obsCN'] = (bedtable1['obsDP'] / medianDP).round(0).fillna(DEFAULT_CN).astype(int)
     bedtable2[['#chr_37', 'start_37', 'end_37', 'obsCN']].to_csv(sys.stdout, sep='\t', header=True, index=None)
 
 if __name__ == '__main__': main()
